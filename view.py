@@ -1,75 +1,54 @@
-import tkinter as tk
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import matplotlib.pyplot as plt
+import PySimpleGUI as sg
+from circle_progress import CircleProgress
+
 
 class DashboardView:
     def __init__(self):
-        self.root = tk.Tk()
-        self.root.title("IRIS Dashboard")
-        self.root.geometry("500x400")
+        sg.theme("DarkBlue14")
 
-        self.bt_label = tk.Label(self.root, text="Bluetooth: ⭕ Disconnected", font=("Arial", 13))
-        self.bt_label.pack(pady=8)
 
-        self.session_id_label = tk.Label(self.root, text="Session ID: None", font=("Arial", 12))
-        self.session_id_label.pack(pady=4)
+        layout = [
 
-        self.duration_label = tk.Label(self.root, text="Duration: 0 sec", font=("Arial", 12))
-        self.duration_label.pack(pady=4)
+            [sg.Text("Iris Dashboard", key="-BT-", font=("Poppins", 40), text_color="white")],
+            [sg.Text("", size=(1, 1))],
+            [sg.Text("Bluetooth: ⭕ Disconnected", key="-BT-", font=("Poppins", 16), text_color="white")],
+            [sg.Text("Session ID: None", key="-SESSION-", font=("Poppins", 16), text_color="white")],
+            [sg.Text("Duration: 0 sec", key="-DURATION-", font=("Poppins", 16), text_color="white")],
+            [sg.Canvas(size=(150, 150), key="-CIRCLE-")],
+            [sg.Button("Looking Good! 😁", key="-BUTTON-", size=(40, 2), font=("Poppins", 16),
+                       button_color=("white", "green"))]
+        ]
 
-        # Graph container
-        self.fig, self.ax = plt.subplots(figsize=(4, 2))
-        self.ax.set_title("Session Data")
-        self.ax.set_xlabel("Time (sec)")
-        self.ax.set_ylabel("Sensor Value")
 
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
-        self.canvas.get_tk_widget().pack(pady=10)
 
-        self.data_x = []
-        self.data_y = []
+        self.window = sg.Window(
+            "IRIS Dashboard",
+            layout,
+            size=(700, 500),
+            finalize=True,
+            element_justification="center",
+            no_titlebar=False
+        )
 
-        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
-        self._closed = False
+        # Circle progress
+        self.circle_progress = CircleProgress(self.window["-CIRCLE-"], size=130)
 
+    # --- Update methods ---
     def set_bt_status(self, connected: bool):
         text = "🟢 Connected" if connected else "⭕ Disconnected"
-        self.bt_label.config(text=f"Bluetooth: {text}")
+        self.window["-BT-"].update(f"Bluetooth: {text}")
 
     def set_session_id(self, session_id):
-        self.session_id_label.config(text=f"Session ID: {session_id}")
+        self.window["-SESSION-"].update(f"Session ID: {session_id}")
 
     def set_session_duration(self, duration):
-        self.duration_label.config(text=f"Duration: {duration} sec")
+        self.window["-DURATION-"].update(f"Duration: {duration} sec")
 
-    def set_data_value(self, value, time_sec):
-        self.data_x.append(time_sec)
-        self.data_y.append(value)
-        self.ax.clear()
-        self.ax.plot(self.data_x, self.data_y, color="blue")
-        self.ax.set_title("Session Data")
-        self.ax.set_xlabel("Time (sec)")
-        self.ax.set_ylabel("Sensor Value")
-        self.canvas.draw()
+    def set_progress(self, value):
+        self.circle_progress.set(value)
 
-    def new_session(self):
-        # Start fresh for each session
-        self.data_x = []
-        self.data_y = []
-        self.ax.clear()
-        self.ax.set_title("Session Data")
-        self.ax.set_xlabel("Time (sec)")
-        self.ax.set_ylabel("Sensor Value")
-        self.canvas.draw()
+    def read(self, timeout=100):
+        return self.window.read(timeout=timeout)
 
-    def update(self):
-        if not self._closed:
-            self.root.update_idletasks()
-            self.root.update()
-
-    def on_close(self):
-        self._closed = True
-        try:
-            self.root.destroy()
-        except:
-            pass
+    def close(self):
+        self.window.close()
